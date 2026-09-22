@@ -1,0 +1,51 @@
+---
+title: "EDA Project"
+author: "Sydney"
+date: "2026-09-20"
+output: html_document
+---
+#Libraries
+```{r}
+#if you need to install a library use this line -- install.packages() 
+library(readr)
+library(tidyr)
+```
+
+
+##getting the data
+```{r}
+# Going to the correct directory
+
+project.dir <-
+  "C:\Users\sydne\Desktop\DS_Fall26\DMungingExpAnalysis\Group Project 1"
+# (change to your specific path up to 'Projects')
+dataset.dir <- file.path(project.dir, "Datasets",
+                         "College_Scorecard_Raw_Data_06102026", 
+                         "College_Scorecard_Raw_Data_06032026") #the route to get to all the files
+outputs.dir <- file.path(project.dir, "Output")
+setwd(project.dir)
+list.files(dataset.dir, pattern = "MERGED") #check to see if you're looking at the right files
+
+year13_14 <- read_csv(
+  file.path(dataset.dir, "MERGED2013_14_PP.csv"),
+  col_select = c(""), #where we will select the columns we want to grab
+)
+year14_15 <- read.csv(
+  file.path(dataset.dir, "MERGED2014_15_PP.csv"),
+  col_select = c(""), #where we will select the columns we want to grab
+)
+year15_16 <- read.csv(
+  file.path(dataset.dir, "MERGED2015_16_PP.csv"),
+  col_select = c(""), #where we will select the columns we want to grab
+)
+
+```
+
+#cleaning the data
+```{r}
+#we'll have to change all the PS values into 
+
+```
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
