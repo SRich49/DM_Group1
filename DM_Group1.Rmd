@@ -4,6 +4,19 @@ author: "Sydney"
 date: "2026-09-20"
 output: html_document
 ---
+
+#Set up your github connection with your r studio
+```{r}
+install.packages(c("usethis", "gitcreds"))
+library(usethis)
+use_git_config(user.name = "Reuelbelizaire ", user.email = "Cborneus.cb@gmail.com")
+use_git_config(user.name = "YourGitHubUsername", user.email = "your.email@example.com")
+usethis::create_github_token()
+gitcreds::gitcreds_set()
+usethis::use_git()
+usethis::use_github()
+
+```
 #Libraries
 ```{r}
 #if you need to install a library use this line -- install.packages() 
