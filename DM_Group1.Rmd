@@ -14,9 +14,9 @@ library(tidyr)
 
 ##getting the data
 ```{r}
-# Going to the correct directory
+# put this code in your block n modify it to fit your needs like file path & columns
 
-project.dir <-
+project.dir <- 
   "C:\Users\sydne\Desktop\DS_Fall26\DMungingExpAnalysis\Group Project 1"
 # (change to your specific path up to 'Projects')
 dataset.dir <- file.path(project.dir, "Datasets",
@@ -26,16 +26,16 @@ outputs.dir <- file.path(project.dir, "Output")
 setwd(project.dir)
 list.files(dataset.dir, pattern = "MERGED") #check to see if you're looking at the right files
 
-year13_14 <- read_csv(
-  file.path(dataset.dir, "MERGED2013_14_PP.csv"),
+year9_10 <- read_csv(
+  file.path(dataset.dir, "MERGED2009_10_PP.csv"),
   col_select = c(""), #where we will select the columns we want to grab
 )
-year14_15 <- read.csv(
+year14_15 <- read_csv(
   file.path(dataset.dir, "MERGED2014_15_PP.csv"),
   col_select = c(""), #where we will select the columns we want to grab
 )
-year15_16 <- read.csv(
-  file.path(dataset.dir, "MERGED2015_16_PP.csv"),
+year20_21 <- read_csv(
+  file.path(dataset.dir, "MERGED2020_21_PP.csv"),
   col_select = c(""), #where we will select the columns we want to grab
 )
 
@@ -45,6 +45,54 @@ year15_16 <- read.csv(
 ```{r}
 #we'll have to change all the PS values into 
 
+```
+
+#Reuel's block 
+Columns important to my question "how have post-graduation earnings changed over the same period?"
+# 1. Identifiers & Matching
+  "UNITID",            # Unique institution ID
+  "INSTNM",            # School name
+  
+  # 2. Institutional Type & Filtering (Apples-to-Apples)
+  "CONTROL",           # 1 = Public, 2 = Private Nonprofit, 3 = Private For-Profit
+  "PREDDEG",           # Predominant degree (3 = Predominantly Bachelor's)
+  
+  # 3. Post-Graduation Earnings (Primary Response Variables)
+  "MD_EARN_WNE_P10",   # Median earnings of students working & not enrolled, 10 yrs post-entry
+  "MD_EARN_WNE_P6",    # Median earnings of students working & not enrolled, 6 yrs post-entry
+  "GT_25K_P10",        # Percentage earning > $25k (threshold of a high school graduate)
+  
+  # 4. Optional Context for Financial Investment (Cost & Debt)
+  "DEBT_MDN",          # Median cumulative student debt at graduation
+  "NPT4_PUB",          # Average net price for public institutions (Title IV students)
+  "NPT4_PRIV"
+```{r}
+project.dir <- "C:/Projects"
+# (change to your specific path up to 'Projects')
+dataset.dir <- file.path(project.dir, "Datasets",
+                         "College_Scorecard_Raw_Data_06102026", 
+                         "College_Scorecard_Raw_Data_06032026") #the route to get to all the files
+outputs.dir <- file.path(project.dir, "Output")
+setwd(project.dir)
+list.files(dataset.dir, pattern = "MERGED")
+
+year9_10 <- read_csv(
+  file.path(dataset.dir, "MERGED2009_10_PP.csv"),
+   col_select = c("UNITID", "INSTNM", "CONTROL", "PREDDEG", "MD_EARN_WNE_P10","MD_EARN_WNE_P6","GT_25K_P10","DEBT_MDN","NPT4_PUB","NPT4_PRIV"),
+  na = c("","NA","PrivacySuppressed")
+)
+year14_15 <- read_csv(
+  file.path(dataset.dir, "MERGED2014_15_PP.csv"),
+  col_select = c("UNITID", "INSTNM", "CONTROL", "PREDDEG", "MD_EARN_WNE_P10","MD_EARN_WNE_P6","GT_25K_P10","DEBT_MDN","NPT4_PUB","NPT4_PRIV"),
+  na = c("","NA","PrivacySuppressed")
+)
+year20_21 <- read_csv(
+  file.path(dataset.dir, "MERGED2020_21_PP.csv"),
+ col_select = c("UNITID", "INSTNM", "CONTROL", "PREDDEG", "MD_EARN_WNE_P10","MD_EARN_WNE_P6","GT_25K_P10","DEBT_MDN","NPT4_PUB","NPT4_PRIV"),
+  na = c("","NA","PrivacySuppressed")
+)
+
+head(year20_21)
 ```
 
 
