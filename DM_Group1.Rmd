@@ -9,7 +9,6 @@ output: html_document
 ```{r}
 install.packages(c("usethis", "gitcreds"))
 library(usethis)
-use_git_config(user.name = "Reuelbelizaire ", user.email = "Cborneus.cb@gmail.com")
 use_git_config(user.name = "YourGitHubUsername", user.email = "your.email@example.com")
 usethis::create_github_token()
 gitcreds::gitcreds_set()
@@ -66,7 +65,7 @@ Columns important to my question "how have post-graduation earnings changed over
   "UNITID",            # Unique institution ID
   "INSTNM",            # School name
   
-  # 2. Institutional Type & Filtering (Apples-to-Apples)
+  # 2. Institutional Type & Filtering 
   "CONTROL",           # 1 = Public, 2 = Private Nonprofit, 3 = Private For-Profit
   "PREDDEG",           # Predominant degree (3 = Predominantly Bachelor's)
   
