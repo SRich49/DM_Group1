@@ -9,7 +9,6 @@ output: html_document
 ```{r}
 install.packages(c("usethis", "gitcreds"))
 library(usethis)
-use_git_config(user.name = "Reuelbelizaire ", user.email = "Cborneus.cb@gmail.com")
 use_git_config(user.name = "YourGitHubUsername", user.email = "your.email@example.com")
 usethis::create_github_token()
 gitcreds::gitcreds_set()
@@ -22,10 +21,15 @@ usethis::use_github()
 #if you need to install a library use this line -- install.packages() 
 library(readr)
 library(tidyr)
+library(dplyr)
+library(naniar) #makes visual representation of NA values
+library(ggplot2)
+#used to disable scientific notation for the entire document(below)
+#options(scipen = 999)
 ```
 
 
-##getting the data
+#getting the data
 ```{r}
 # put this code in your block n modify it to fit your needs like file path & columns
 
@@ -54,11 +58,6 @@ year20_21 <- read_csv(
 
 ```
 
-#cleaning the data
-```{r}
-#we'll have to change all the PS values into 
-
-```
 
 #Reuel's block 
 Columns important to my question "how have post-graduation earnings changed over the same period?"
@@ -66,22 +65,21 @@ Columns important to my question "how have post-graduation earnings changed over
   "UNITID",            # Unique institution ID
   "INSTNM",            # School name
   
-  # 2. Institutional Type & Filtering (Apples-to-Apples)
+# 2. Institutional Type & Filtering 
   "CONTROL",           # 1 = Public, 2 = Private Nonprofit, 3 = Private For-Profit
   "PREDDEG",           # Predominant degree (3 = Predominantly Bachelor's)
   
-  # 3. Post-Graduation Earnings (Primary Response Variables)
+# 3. Post-Graduation Earnings (Primary Response Variables)
   "MD_EARN_WNE_P10",   # Median earnings of students working & not enrolled, 10 yrs post-entry
   "MD_EARN_WNE_P6",    # Median earnings of students working & not enrolled, 6 yrs post-entry
   "GT_25K_P10",        # Percentage earning > $25k (threshold of a high school graduate)
   
-  # 4. Optional Context for Financial Investment (Cost & Debt)
+# 4. Optional Context for Financial Investment (Cost & Debt)
   "DEBT_MDN",          # Median cumulative student debt at graduation
   "NPT4_PUB",          # Average net price for public institutions (Title IV students)
   "NPT4_PRIV"
 ```{r}
-project.dir <- "C:/Projects"
-# (change to your specific path up to 'Projects')
+project.dir <- "C:/Projects" 
 dataset.dir <- file.path(project.dir, "Datasets",
                          "College_Scorecard_Raw_Data_06102026", 
                          "College_Scorecard_Raw_Data_06032026") #the route to get to all the files
@@ -104,9 +102,183 @@ year20_21 <- read_csv(
  col_select = c("UNITID", "INSTNM", "CONTROL", "PREDDEG", "MD_EARN_WNE_P10","MD_EARN_WNE_P6","GT_25K_P10","DEBT_MDN","NPT4_PUB","NPT4_PRIV"),
   na = c("","NA","PrivacySuppressed")
 )
+#same column name will be necessary for looking at models/graphs
+year9_10$year <- "2009-2010"
+year14_15$year <- "2014-2015"
+year20_21$year <- "2020-2021"
+all_years <- rbind(year9_10, year14_15, year20_21)
+head(all_years)
 
-head(year20_21)
+```
+
+#assessing data & fixing data types
+```{r}
+#visual representation of missing data
+gg_miss_var(all_years)
+
+#checking data types
+class(all_years$MD_EARN_WNE_P10)
+all_years$MD_EARN_WNE_P10 <- as.numeric(all_years$MD_EARN_WNE_P10)
+
+class(all_years$GT_25K_P10)
+all_years$GT_25K_P10 <- as.numeric(all_years$GT_25K_P10)
+
+class(all_years$MD_EARN_WNE_P6)
+all_years$MD_EARN_WNE_P6 <- as.numeric(all_years$MD_EARN_WNE_P6)
+
+class(all_years$DEBT_MDN)
+all_years$DEBT_MDN <- as.numeric(all_years$DEBT_MDN)
+
+class(all_years$NPT4_PUB)
+all_years$NPT4_PUB <- as.numeric(all_years$NPT4_PUB)
+
+class(all_years$NPT4_PRIV)
+all_years$NPT4_PRIV <- as.numeric(all_years$NPT4_PRIV )
 ```
 
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## Checking correlation with variables ##
+```{r}
+#checking variables with response variable
+cor.test(all_years$CONTROL,all_years$PREDDEG)
+#comparing 
+cor.test(all_years$PREDDEG,all_years$MD_EARN_WNE_P6) #.40 
+cor.test(all_years$PREDDEG,all_years$GT_25K_P10) #.55
+cor.test(all_years$PREDDEG,all_years$MD_EARN_WNE_P10) #.46
+
+cor.test(all_years$PREDDEG,all_years$DEBT_MDN) #.43 
+cor.test(all_years$PREDDEG,all_years$NPT4_PUB) #.38 
+cor.test(all_years$PREDDEG,all_years$NPT4_PRIV) #.25 
+
+#Learned that control has no effect on any of the variables I will be testing (always getting negative correlations)
+
+#do after checking variable to make reading the df easier
+head(all_years$CONTROL)
+all_years$CONTROL <- factor(
+  all_years$CONTROL,
+  levels = c(1,2,3),
+  labels = c("Public", "Private Nonprofit", "Private For-Profit")
+)
+
+all_years$PREDDEG <- factor(
+  all_years$PREDDEG,
+  levels = c(1,2,3,4),
+  labels = c("Certificate", "Associate", "Bachelor's", "Graduate")
+)
+#do with others like masters & etc.
+bachelor_schools <- all_years %>%
+  filter(PREDDEG == "Bachelor's")
+```
+
+## Accounting for inflation then graphing ##
+```{r}
+#I forgot to include inflation with these graphs 
+ggplot(all_years, aes(x = CONTROL, y = MD_EARN_WNE_P6)) + geom_boxplot()
+ggplot(all_years, aes(x = CONTROL, y = MD_EARN_WNE_P10)) + geom_boxplot()
+ggplot(all_years, aes(x = CONTROL, y = GT_25K_P10)) + geom_boxplot()
+
+#formula to adjust for inflation ADD NPT4 for pub & priv into formula 
+all_years <- all_years %>%
+  mutate(
+    inflation_adjust = case_when(
+      year == "2009-2010" ~ 1.206,
+      year == "2014-2015" ~ 1.093,
+      year == "2020-2021" ~ 1.000
+    ),
+    NPT4_combined = coalesce(NPT4_PUB,NPT4_PRIV),
+    
+    MD_EARN_WNE_P6_real  = MD_EARN_WNE_P6 * inflation_adjust,
+    MD_EARN_WNE_P10_real = MD_EARN_WNE_P10 * inflation_adjust,
+    DEBT_MDN_real        = DEBT_MDN * inflation_adjust,
+    NPT4_real = NPT4_combined * inflation_adjust,
+    
+    earn_to_debt_ratio = MD_EARN_WNE_P10_real / DEBT_MDN_real
+  )
+head(all_years)
+# graph used to shown inflation over the years 
+ggplot(all_years, aes(x = CONTROL, y = MD_EARN_WNE_P6_real, fill = year)) + 
+  geom_boxplot(outlier.alpha = 0.2) + 
+  labs( 
+    title = "6 year post-entry median earnings by institution type",
+    x = "Institution type",
+    y = "Median earnings(inflation accounted to 2020 standards)"
+  )
+
+ggplot(all_years, aes(x = CONTROL, y = MD_EARN_WNE_P10_real, fill = year)) + 
+  geom_boxplot(outlier.alpha = 0.2) + 
+  labs( 
+    title = "10 year post-entry median earnings by institution type",
+    x = "Institution type",
+    y = "Median earnings(inflation accounted to 2020 standards)"
+  )
+
+ggplot(all_years, aes(x = CONTROL, y = DEBT_MDN_real, fill = year)) + 
+  geom_boxplot(outlier.alpha = 0.2) + 
+  labs( 
+    title = "median debt by institution type",
+    x = "Institution type",
+    y = "Median debt"
+  )
+# Plotting the threshold rate across years and school types #only shows 2009-2010 because other years don't provide this info
+tail(all_years)
+
+ggplot(all_years, aes(x = CONTROL, y = GT_25K_P10, fill = year)) +
+  geom_boxplot(outlier.alpha = 0.2) +
+  scale_y_continuous(labels = scales::label_percent(accuracy = 1), limits = c(0, 1)) +
+  labs(
+    title = "Share of Students Earning >$25k (10 Years Post-Entry)",
+    x = "Institutional Control",
+    y = "Percentage Earning >$25k",
+  )
+
+```
+#grouping institute type & degree to compare the median data of selected variables 
+```{r}
+#remove PREDDEG to get a better understanding of numbers
+
+#Median earning for 6 years
+all_years%>%
+   group_by(year,CONTROL) %>%
+  summarize(med_earn = median(MD_EARN_WNE_P6_real, na.rm = TRUE))
+
+all_years %>%
+  group_by(year, CONTROL) %>%
+  summarize(
+    n_schools = sum(!is.na(MD_EARN_WNE_P6_real)),
+    median_earnings_10yr = median(MD_EARN_WNE_P6_real, na.rm = TRUE),
+  )
+
+#Median earning for 10 years
+all_years%>%
+   group_by(year,CONTROL) %>%
+  summarize(med_earn = median(MD_EARN_WNE_P10_real, na.rm = TRUE))
+
+bachelor_schools %>% #now i can use this for a linear regression model
+  group_by(year, CONTROL) %>%
+  summarize(
+    n_schools       = sum(!is.na(MD_EARN_WNE_P10_real)),
+    med_earnings_10 = median(MD_EARN_WNE_P10_real, na.rm = TRUE),
+    med_debt        = median(DEBT_MDN_real, na.rm = TRUE),
+    med_net_price   = median(NPT4_real, na.rm = TRUE)
+  )
+
+all_years %>%
+  group_by(year,CONTROL) %>%
+  summarize(med_debt = median(DEBT_MDN_real, na.rm = TRUE))
+
+all_years %>%
+  group_by(year,CONTROL) %>%
+  summarize(med_percent_past25k = median(GT_25K_P10, na.rm = TRUE))
+
+
+
+```
+Regression models
+```{r}
+lm(MD_EARN_WNE_P10_real ~ year, data = all_years)
+lm(MD_EARN_WNE_P6_real ~ CONTROL, data = all_years)
+
+```
+
+
+#"" block
