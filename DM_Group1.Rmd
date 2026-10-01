@@ -65,7 +65,7 @@ Columns important to my question "how have post-graduation earnings changed over
   "UNITID",            # Unique institution ID
   "INSTNM",            # School name
   
-# 2. Institutional Type & Filtering 
+  # 2. Institutional Type & Filtering 
   "CONTROL",           # 1 = Public, 2 = Private Nonprofit, 3 = Private For-Profit
   "PREDDEG",           # Predominant degree (3 = Predominantly Bachelor's)
   
