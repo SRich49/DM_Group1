@@ -15,9 +15,9 @@ library(tidyr)
 ##getting the data
 ```{r}
 # Going to the correct directory
-
+# reuel's path file "C:\Users\pbcsc\OneDrive\Documents\Projects"
 project.dir <-
-  "C:\Users\sydne\Desktop\DS_Fall26\DMungingExpAnalysis\Group Project 1"
+  "C:/Users/pbcsc/OneDrive/Documents/Projects"
 # (change to your specific path up to 'Projects')
 dataset.dir <- file.path(project.dir, "Datasets",
                          "College_Scorecard_Raw_Data_06102026", 
@@ -25,17 +25,17 @@ dataset.dir <- file.path(project.dir, "Datasets",
 outputs.dir <- file.path(project.dir, "Output")
 setwd(project.dir)
 list.files(dataset.dir, pattern = "MERGED") #check to see if you're looking at the right files
-
-year13_14 <- read_csv(
-  file.path(dataset.dir, "MERGED2013_14_PP.csv"),
+# variables to use CONTROL, NPT4, C150_4, GRAD_DEBT_MDN, 
+year09_10 <- read_csv(
+  file.path(dataset.dir, "MERGED2009_10_PP.csv"),
   col_select = c(""), #where we will select the columns we want to grab
 )
 year14_15 <- read.csv(
   file.path(dataset.dir, "MERGED2014_15_PP.csv"),
   col_select = c(""), #where we will select the columns we want to grab
 )
-year15_16 <- read.csv(
-  file.path(dataset.dir, "MERGED2015_16_PP.csv"),
+year20_21 <- read.csv(
+  file.path(dataset.dir, "MERGED2020_21_PP.csv"),
   col_select = c(""), #where we will select the columns we want to grab
 )
 
