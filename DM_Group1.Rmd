@@ -111,7 +111,7 @@ head(all_years)
 
 ```
 
-#assessing data & fixing data types
+#assessing data | fixing data types | NA values
 ```{r}
 #visual representation of missing data
 gg_miss_var(all_years)
@@ -134,6 +134,14 @@ all_years$NPT4_PUB <- as.numeric(all_years$NPT4_PUB)
 
 class(all_years$NPT4_PRIV)
 all_years$NPT4_PRIV <- as.numeric(all_years$NPT4_PRIV )
+
+#Fixing NA values
+
+# combine the values because public UNIs can't give NPT$ for Priv UNIs
+all_years <- all_years %>%
+  mutate(NPT4_combined = coalesce(NPT4_PUB, NPT4_PRIV))
+
+#government stopped recording this variable (GT_25K_P10) past 2012 so that explains the NA values  
 ```
 
 
@@ -165,9 +173,7 @@ all_years$PREDDEG <- factor(
   levels = c(1,2,3,4),
   labels = c("Certificate", "Associate", "Bachelor's", "Graduate")
 )
-#do with others like masters & etc.
-bachelor_schools <- all_years %>%
-  filter(PREDDEG == "Bachelor's")
+
 ```
 
 ## Accounting for inflation then graphing ##
@@ -178,6 +184,7 @@ ggplot(all_years, aes(x = CONTROL, y = MD_EARN_WNE_P10)) + geom_boxplot()
 ggplot(all_years, aes(x = CONTROL, y = GT_25K_P10)) + geom_boxplot()
 
 #formula to adjust for inflation ADD NPT4 for pub & priv into formula 
+# inflation based on 2020/2021 
 all_years <- all_years %>%
   mutate(
     inflation_adjust = case_when(
@@ -194,7 +201,13 @@ all_years <- all_years %>%
     
     earn_to_debt_ratio = MD_EARN_WNE_P10_real / DEBT_MDN_real
   )
+
 head(all_years)
+
+#creating a separate df that only hold bachelors to help answer my question
+bachelor_schools <- all_years %>%
+  filter(PREDDEG == "Bachelor's" & !is.na(MD_EARN_WNE_P10_real))
+
 # graph used to shown inflation over the years 
 ggplot(all_years, aes(x = CONTROL, y = MD_EARN_WNE_P6_real, fill = year)) + 
   geom_boxplot(outlier.alpha = 0.2) + 
