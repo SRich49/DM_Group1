@@ -74,7 +74,7 @@ Columns important to my question "how have post-graduation earnings changed over
   "MD_EARN_WNE_P6",    # Median earnings of students working & not enrolled, 6 yrs post-entry
   "GT_25K_P10",        # Percentage earning > $25k (threshold of a high school graduate)
   
-# 4. Optional Context for Financial Investment (Cost & Debt)
+# 4. Context for Financial Investment
   "DEBT_MDN",          # Median cumulative student debt at graduation
   "NPT4_PUB",          # Average net price for public institutions (Title IV students)
   "NPT4_PRIV"
