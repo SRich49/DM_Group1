@@ -2,4 +2,10 @@
 .Rhistory
 .RData
 .Ruserdata
+<<<<<<< HEAD
 DM_Group1.Rmd
+=======
+.httr-oauth
+.DS_Store
+.quarto
+>>>>>>> 7e214ba80d4c2133ec84c86888b1ba636d9d2279
