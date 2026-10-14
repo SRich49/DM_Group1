@@ -1,14 +1,24 @@
 ---
-title: "EDA Project"
+title: "College Scorecard Longitudinal Analysis: Post-Graduation Earnings"
 author: "Sydney"
 date: "2026-09-20"
-output: html_document
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    theme: cosmo
+    code-fold: show
+    code-tools: true
+execute:
+  warning: false
+  message: false
 ---
-<<<<<<< HEAD
-=======
 
-#Set up your github connection with your r studio
+# Set up your github connection with your r studio
+
 ```{r}
+#| eval: false
+# Setup commands for local Git & GitHub authentication
 install.packages(c("usethis", "gitcreds"))
 library(usethis)
 use_git_config(user.name = "YourGitHubUsername", user.email = "your.email@example.com")
@@ -17,34 +27,32 @@ gitcreds::gitcreds_set()
 usethis::use_git()
 usethis::use_github()
 
-```
->>>>>>> 7e214ba80d4c2133ec84c86888b1ba636d9d2279
+
 #Libraries
-```{r}
-#if you need to install a library use this line -- install.packages() 
+
 library(readr)
 library(tidyr)
 library(dplyr)
-library(naniar) #makes visual representation of NA values
+library(naniar)
 library(ggplot2)
-#used to disable scientific notation for the entire document(below)
-#options(scipen = 999)
+library(scales)
+
+# Disable scientific notation for cleaner regression output models
+options(scipen = 999)
 ```
 
-
-#getting the data
 ```{r}
-<<<<<<< HEAD
-# Going to the correct directory
-# reuel's path file "C:\Users\pbcsc\OneDrive\Documents\Projects"
-project.dir <-
-  "C:/Users/pbcsc/OneDrive/Documents/Projects"
-=======
-# put this code in your block n modify it to fit your needs like file path & columns
-
+#use this same code for your block so we can run each others code withour modifying code 
+project.dir <- "C:/Projects" 
+dataset.dir <- file.path(project.dir, "Datasets",
+                         "College_Scorecard_Raw_Data_06102026", 
+                         "College_Scorecard_Raw_Data_06032026") #the route to get to all the files
+outputs.dir <- file.path(project.dir, "Output")
+setwd(project.dir)
+list.files(dataset.dir, pattern = "MERGED")
+#^^
 project.dir <- 
   "C:\Users\sydne\Desktop\DS_Fall26\DMungingExpAnalysis\Group Project 1"
->>>>>>> 7e214ba80d4c2133ec84c86888b1ba636d9d2279
 # (change to your specific path up to 'Projects')
 dataset.dir <- file.path(project.dir, "Datasets",
                          "College_Scorecard_Raw_Data_06102026", 
@@ -52,18 +60,6 @@ dataset.dir <- file.path(project.dir, "Datasets",
 outputs.dir <- file.path(project.dir, "Output")
 setwd(project.dir)
 list.files(dataset.dir, pattern = "MERGED") #check to see if you're looking at the right files
-<<<<<<< HEAD
-# variables to use CONTROL, NPT4, C150_4, GRAD_DEBT_MDN, 
-year09_10 <- read_csv(
-  file.path(dataset.dir, "MERGED2009_10_PP.csv"),
-  col_select = c(""), #where we will select the columns we want to grab
-)
-year14_15 <- read.csv(
-  file.path(dataset.dir, "MERGED2014_15_PP.csv"),
-  col_select = c(""), #where we will select the columns we want to grab
-)
-year20_21 <- read.csv(
-=======
 
 year9_10 <- read_csv(
   file.path(dataset.dir, "MERGED2009_10_PP.csv"),
@@ -74,40 +70,57 @@ year14_15 <- read_csv(
   col_select = c(""), #where we will select the columns we want to grab
 )
 year20_21 <- read_csv(
->>>>>>> 7e214ba80d4c2133ec84c86888b1ba636d9d2279
   file.path(dataset.dir, "MERGED2020_21_PP.csv"),
   col_select = c(""), #where we will select the columns we want to grab
 )
 
 ```
 
+\#"Sydney's" block \#"Naomi's" block \#"Shane's" block \#"Bryan's" block
 
-<<<<<<< HEAD
-=======
-#Reuel's block 
-Columns important to my question "how have post-graduation earnings changed over the same period?"
-# 1. Identifiers & Matching
-  "UNITID",            # Unique institution ID
-  "INSTNM",            # School name
-  
-  # 2. Institutional Type & Filtering 
-  "CONTROL",           # 1 = Public, 2 = Private Nonprofit, 3 = Private For-Profit
-  "PREDDEG",           # Predominant degree (3 = Predominantly Bachelor's)
-  
-# 3. Post-Graduation Earnings (Primary Response Variables)
-  "MD_EARN_WNE_P10",   # Median earnings of students working & not enrolled, 10 yrs post-entry
-  "MD_EARN_WNE_P6",    # Median earnings of students working & not enrolled, 6 yrs post-entry
-  "GT_25K_P10",        # Percentage earning > $25k (threshold of a high school graduate)
-  
-# 4. Context for Financial Investment
-  "DEBT_MDN",          # Median cumulative student debt at graduation
-  "NPT4_PUB",          # Average net price for public institutions (Title IV students)
-  "NPT4_PRIV"
+### Reuel's block Question 4: "how have post-graduation earnings changed over the same period?"
+
+#### Columns important to my question
+
+## 1.Identifiers & Matching
+
+1.  "*UNITID*", \# Unique institution identifier
+
+2.  "*INSTNM*", \# Institution name
+
+## 2. Institutional Type & Filtering
+
+##### "*CONTROL*":
+
+1 = Public,
+
+2 = Private Nonprofit,
+
+3 = Private For-Profit "PREDDEG",
+
+Predominant degree (3 = Predominantly Bachelor's)
+
+## 3. Post-Graduation Earnings (Primary Response Variables)
+
+1.  "*MD_EARN_WNE_P6*", \# Median earnings working & not enrolled, 6 yrs post-entry
+
+2.  "*MD_EARN_WNE_P10*", \# Median earnings working & not enrolled, 10 yrs post-entry
+
+3.  "*GT_25K_P10*", \# Fraction earning \> \$25k (in 2014 constant dollars)
+
+## 4. Context for Financial Investment
+
+1.  "*DEBT_MDN*", \# Median cumulative student debt at graduation
+
+2.  "*NPT4_PUB*", \# Average net price for public institutions
+
+3.  "*NPT4_PRIV*" \# Average net price for private institutions
+
 ```{r}
 project.dir <- "C:/Projects" 
 dataset.dir <- file.path(project.dir, "Datasets",
                          "College_Scorecard_Raw_Data_06102026", 
-                         "College_Scorecard_Raw_Data_06032026") #the route to get to all the files
+                         "College_Scorecard_Raw_Data_06032026") 
 outputs.dir <- file.path(project.dir, "Output")
 setwd(project.dir)
 list.files(dataset.dir, pattern = "MERGED")
@@ -117,6 +130,7 @@ year9_10 <- read_csv(
    col_select = c("UNITID", "INSTNM", "CONTROL", "PREDDEG", "MD_EARN_WNE_P10","MD_EARN_WNE_P6","GT_25K_P10","DEBT_MDN","NPT4_PUB","NPT4_PRIV"),
   na = c("","NA","PrivacySuppressed")
 )
+
 year14_15 <- read_csv(
   file.path(dataset.dir, "MERGED2014_15_PP.csv"),
   col_select = c("UNITID", "INSTNM", "CONTROL", "PREDDEG", "MD_EARN_WNE_P10","MD_EARN_WNE_P6","GT_25K_P10","DEBT_MDN","NPT4_PUB","NPT4_PRIV"),
@@ -127,16 +141,19 @@ year20_21 <- read_csv(
  col_select = c("UNITID", "INSTNM", "CONTROL", "PREDDEG", "MD_EARN_WNE_P10","MD_EARN_WNE_P6","GT_25K_P10","DEBT_MDN","NPT4_PUB","NPT4_PRIV"),
   na = c("","NA","PrivacySuppressed")
 )
+
 #same column name will be necessary for looking at models/graphs
 year9_10$year <- "2009-2010"
 year14_15$year <- "2014-2015"
 year20_21$year <- "2020-2021"
 all_years <- rbind(year9_10, year14_15, year20_21)
+
 head(all_years)
 
 ```
 
-#assessing data | fixing data types | NA values
+#assessing data \| fixing data types \| NA values
+
 ```{r}
 #visual representation of missing data
 gg_miss_var(all_years)
@@ -169,12 +186,11 @@ all_years <- all_years %>%
 #government stopped recording this variable (GT_25K_P10) past 2012 so that explains the NA values  
 ```
 
->>>>>>> 7e214ba80d4c2133ec84c86888b1ba636d9d2279
+## Checking correlation with variables
 
-## Checking correlation with variables ##
 ```{r}
 #checking variables with response variable
-cor.test(all_years$CONTROL,all_years$PREDDEG)
+cor.test(all_years$CONTROL,all_years$PREDDEG) #-.32
 #comparing 
 cor.test(all_years$PREDDEG,all_years$MD_EARN_WNE_P6) #.40 
 cor.test(all_years$PREDDEG,all_years$GT_25K_P10) #.55
@@ -184,7 +200,7 @@ cor.test(all_years$PREDDEG,all_years$DEBT_MDN) #.43
 cor.test(all_years$PREDDEG,all_years$NPT4_PUB) #.38 
 cor.test(all_years$PREDDEG,all_years$NPT4_PRIV) #.25 
 
-#Learned that control has no effect on any of the variables I will be testing (always getting negative correlations)
+#Learned that control has no effect on any of the variables I will be testing 
 
 #do after checking variable to make reading the df easier
 head(all_years$CONTROL)
@@ -202,7 +218,8 @@ all_years$PREDDEG <- factor(
 
 ```
 
-## Accounting for inflation then graphing ##
+## Accounting for inflation then graphing
+
 ```{r}
 #I forgot to include inflation with these graphs 
 ggplot(all_years, aes(x = CONTROL, y = MD_EARN_WNE_P6)) + geom_boxplot()
@@ -211,27 +228,31 @@ ggplot(all_years, aes(x = CONTROL, y = GT_25K_P10)) + geom_boxplot()
 
 #formula to adjust for inflation ADD NPT4 for pub & priv into formula 
 # inflation based on 2020/2021 
+#found from the bureau of labor statistics | CPI - consumer price index
+#formula - multiplier = CPI target year(2020)/ CPI Cohort year
+#i found out that the GT_25k variable is the only adjusted variable so that's why i created this formula | GT_25k isn't a recorded variable past 2012 
 all_years <- all_years %>%
-  mutate(
+  mutate( #check for already adjusted inflation
     inflation_adjust = case_when(
       year == "2009-2010" ~ 1.206,
       year == "2014-2015" ~ 1.093,
       year == "2020-2021" ~ 1.000
     ),
     NPT4_combined = coalesce(NPT4_PUB,NPT4_PRIV),
-    
     MD_EARN_WNE_P6_real  = MD_EARN_WNE_P6 * inflation_adjust,
     MD_EARN_WNE_P10_real = MD_EARN_WNE_P10 * inflation_adjust,
     DEBT_MDN_real        = DEBT_MDN * inflation_adjust,
     NPT4_real = NPT4_combined * inflation_adjust,
-    
+    #formula to get a gauge of efficiency 
     earn_to_debt_ratio = MD_EARN_WNE_P10_real / DEBT_MDN_real
   )
 
-head(all_years)
+# Create 4-year Bachelor subset for valid comparison
+bachelor_schools <- all_years %>%
+  filter(PREDDEG == "Bachelor's" & !is.na(MD_EARN_WNE_P10_real))
 
-# graph used to shown inflation over the years 
-ggplot(all_years, aes(x = CONTROL, y = MD_EARN_WNE_P6_real, fill = year)) + 
+# 1. Ten-Year Real Earnings Trajectory
+ggplot(bachelor_schools, aes(x = CONTROL, y = MD_EARN_WNE_P10_real, fill = year)) + 
   geom_boxplot(outlier.alpha = 0.2) + 
   labs( 
     title = "6 year post-entry median earnings by institution type",
@@ -239,7 +260,8 @@ ggplot(all_years, aes(x = CONTROL, y = MD_EARN_WNE_P6_real, fill = year)) +
     y = "Median earnings(inflation accounted to 2020 standards)"
   )
 
-ggplot(all_years, aes(x = CONTROL, y = MD_EARN_WNE_P10_real, fill = year)) + 
+# 2. Six-Year Real Earnings Trajectory
+ggplot(bachelor_schools, aes(x = CONTROL, y = MD_EARN_WNE_P6_real, fill = year)) + 
   geom_boxplot(outlier.alpha = 0.2) + 
   labs( 
     title = "10 year post-entry median earnings by institution type",
@@ -247,19 +269,17 @@ ggplot(all_years, aes(x = CONTROL, y = MD_EARN_WNE_P10_real, fill = year)) +
     y = "Median earnings(inflation accounted to 2020 standards)"
   )
 
-ggplot(all_years, aes(x = CONTROL, y = DEBT_MDN_real, fill = year)) + 
+# 3. Median Real Debt by Sector
+ggplot(bachelor_schools, aes(x = CONTROL, y = DEBT_MDN_real, fill = year)) + 
   geom_boxplot(outlier.alpha = 0.2) + 
   labs( 
     title = "median debt by institution type",
     x = "Institution type",
     y = "Median debt"
   )
-# Plotting the threshold rate across years and school types #only shows 2009-2010 because other years don't provide this info
-tail(all_years)
-
-ggplot(all_years, aes(x = CONTROL, y = GT_25K_P10, fill = year)) +
+#won't use this graph
+ggplot(bachelor_schools, aes(x = CONTROL, y = GT_25K_P10, fill = year)) +
   geom_boxplot(outlier.alpha = 0.2) +
-  scale_y_continuous(labels = scales::label_percent(accuracy = 1), limits = c(0, 1)) +
   labs(
     title = "Share of Students Earning >$25k (10 Years Post-Entry)",
     x = "Institutional Control",
@@ -267,82 +287,92 @@ ggplot(all_years, aes(x = CONTROL, y = GT_25K_P10, fill = year)) +
   )
 
 ```
-#grouping institute type & degree to compare the median data of selected variables 
+
+## grouping institute type & degree to compare the median data of selected variables
+
 ```{r}
 #remove PREDDEG to get a better understanding of numbers
 
 #Median earning for 6 years
-all_years%>%
+bachelor_schools%>%
    group_by(year,CONTROL) %>%
   summarize(med_earn = median(MD_EARN_WNE_P6_real, na.rm = TRUE))
 
-all_years %>%
+bachelor_schools %>%
   group_by(year, CONTROL) %>%
   summarize(
     n_schools = sum(!is.na(MD_EARN_WNE_P6_real)),
     median_earnings_10yr = median(MD_EARN_WNE_P6_real, na.rm = TRUE),
   )
-
 #Median earning for 10 years
-all_years%>%
+bachelor_schools%>%
    group_by(year,CONTROL) %>%
   summarize(med_earn = median(MD_EARN_WNE_P10_real, na.rm = TRUE))
 
-bachelor_schools %>% #now i can use this for a linear regression model
-  group_by(year, CONTROL) %>%
-  summarize(
-    n_schools       = sum(!is.na(MD_EARN_WNE_P10_real)),
-    med_earnings_10 = median(MD_EARN_WNE_P10_real, na.rm = TRUE),
-    med_debt        = median(DEBT_MDN_real, na.rm = TRUE),
-    med_net_price   = median(NPT4_real, na.rm = TRUE)
-  )
-
-all_years %>%
+bachelor_schools %>%
   group_by(year,CONTROL) %>%
   summarize(med_debt = median(DEBT_MDN_real, na.rm = TRUE))
 
-all_years %>%
+bachelor_schools %>%
   group_by(year,CONTROL) %>%
   summarize(med_percent_past25k = median(GT_25K_P10, na.rm = TRUE))
 
 bachelor_schools$DEBT_MDN_real
 
+#the bachelor degree summary 
+bachelor_summary<-bachelor_schools %>% #now i can use this for a linear regression model
+  group_by(year, CONTROL) %>%
+  summarize(
+    n_schools          = sum(!is.na(MD_EARN_WNE_P10_real)),
+    med_earnings_10yr  = median(MD_EARN_WNE_P10_real, na.rm = TRUE),
+    iqr_earnings_10yr  = IQR(MD_EARN_WNE_P10_real, na.rm = TRUE),
+    med_earnings_6yr   = median(MD_EARN_WNE_P6_real, na.rm = TRUE),
+    med_debt           = median(DEBT_MDN_real, na.rm = TRUE),
+    med_net_price      = median(NPT4_real, na.rm = TRUE),
+    med_earn_to_debt   = median(earn_to_debt_ratio, na.rm = TRUE),
+  )
+
+bachelor_summary
+
+
 ```
-Regression models
+
+## Regression models
+
 ```{r}
 
-#creating a separate df that only hold bachelors to help answer my question
-bachelor_schools <- all_years %>%
-  filter(PREDDEG == "Bachelor's" & !is.na(MD_EARN_WNE_P10_real))
 
 head(bachelor_schools)
 gg_miss_var(bachelor_schools)
-#looking at median income after 10 years & not great attempts
-#model_md10<-lm(MD_EARN_WNE_P10_real ~ year, data = bachelor_schools)
-model_md10_2<-lm(MD_EARN_WNE_P10_real ~ year + CONTROL, data = bachelor_schools)
-model_realmd10<-lm(MD_EARN_WNE_P10_real ~ year * CONTROL, data = bachelor_schools)
-model_ans_10<-lm(MD_EARN_WNE_P10_real ~ DEBT_MDN_real + year * CONTROL, data = bachelor_schools)
+# Model 1: Baseline trend in real earnings (10-Year)
+m1_time <- lm(MD_EARN_WNE_P10_real ~ year, data = bachelor_schools)
+summary(m1_time)
 
-summary(model_md10_2)
-summary(model_realmd10)
-#Statistically significant but only explains around 12% of the variation so alot of unknown
-summary(model_ans_10)
+# Model 2: Controlling for institutional sector and real debt
+m2_controlled <- lm(MD_EARN_WNE_P10_real ~ DEBT_MDN_real + year + CONTROL, data = bachelor_schools)
+summary(m2_controlled)
 
-# good model model_md6<-lm(MD_EARN_WNE_P6_real ~ CONTROL, data = bachelor_schools) 
-model_md6_2<-lm(MD_EARN_WNE_P6_real ~ year + CONTROL, data = bachelor_schools)
-model_realmd6<-lm(MD_EARN_WNE_P6_real ~ year * CONTROL, data = bachelor_schools)
-model_ans_6<-lm(MD_EARN_WNE_P6_real ~ DEBT_MDN_real + year * CONTROL, data = bachelor_schools)
+# Model 3: Sector interaction model for 10-Year real earnings
+m3_interaction_p10 <- lm(MD_EARN_WNE_P10_real ~ DEBT_MDN_real + year * CONTROL, data = bachelor_schools)
+summary(m3_interaction_p10)
 
-
-summary(model_md6_2)
-summary(model_realmd6)
-#Statistically significant but only explains around 14% of the variation so alot of unknown
-summary(model_ans_6)
+# Model 4: Sector interaction model for 6-Year real earnings
+m4_interaction_p6 <- lm(MD_EARN_WNE_P6_real ~ DEBT_MDN_real + year * CONTROL, data = bachelor_schools)
+summary(m4_interaction_p6)
 ```
-#Answering/notes :how have post-graduation earnings changed over the same period?
--Overall Wages: After adjusting for inflation to constant 2020 dollars, post-graduation earnings did not steadily increase.
--2014/2015 dip: earnings dropped significantly during this time period due to many reason(look those up) but rebounded in 2020/2021(Covid year!)
--During 2020 the median earnings only increased by 312 for median earnings past 10 years but it's value isn't statistically significant at .72 but for 6 year it increased by 1,893$ & it's statistically significant
-- Public & private nonprofit alum were able to maintain or increase their money over time while private for profit was losing money 
 
-#"" block
+## Answers/notes : 
+
+1\. Why I had to make the inflation formula: When looking at the data dictionary, GT_25K_P10 was already adjusted to 2014 constant dollars by the Department of Education, but none of the actual dollar variables (MD_EARN_WNE_P6, MD_EARN_WNE_P10, DEBT_MDN, NPT4) were adjusted for inflation across the three cohort files. Because 2009, 2014, and 2020 dollars don't have the same purchasing power, I used the BLS CPI-U numbers to adjust all the dollar amounts to constant 2020 dollars so we could compare them fairly.
+
+2.Why there were so many NAs in NPT4_PUB and NPT4_PRIV: A school can only be public or private—it can't be both. So if a school is private, the public net price column is automatically empty (NA), and if it's public, the private column is empty (NA). Instead of dropping those rows and losing data, I used coalesce() to combine them into one NPT4_combined variable.
+
+3.Overall wage trend (real purchasing power): After adjusting for inflation to 2020 dollars, median earnings didn't steadily go up.
+
+4.The 2014–15 drop: Across all sectors, earnings took a noticeable hit for the 2014–15 cohort (dropping by roughly $7,000$ for public 4-year schools in the 10-year metric, p \< 0.001\$).
+
+5.10-Year earnings stayed flat over the decade: By 2020–21, 10-year real median earnings for public colleges only increased by about $313$ compared to 2009–10. Because the $p$-value was 0.72, that difference is not statistically significant—meaning real 10-year wages basically stagnated.
+
+6.6-Year earnings saw a small real gain: For 6-year median earnings at public colleges, there was a statistically significant increase of about +$1,893$ by 2020–21 (p = 0.0095).
+
+7.Public and private nonprofits held up, but for-profits dropped hard: Public and private nonprofit grads generally kept their purchasing power over the decade, but private for-profit bachelor's programs took a massive loss, dropping by over $11,600$ in real earnings relative to public schools (p \< 0.001).
