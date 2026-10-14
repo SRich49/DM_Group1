@@ -1,5 +1,5 @@
 ---
-title: "College Scorecard Longitudinal Analysis: Post-Graduation Earnings"
+title: "EDA Project"
 author: "Sydney"
 date: "2026-09-20"
 format:
