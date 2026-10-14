@@ -90,7 +90,7 @@ year20_21 <- read_csv(
 
 ## 2. Institutional Type & Filtering
 
-##### "*CONTROL*":
+"*CONTROL*":
 
 1 = Public,
 
@@ -152,7 +152,7 @@ head(all_years)
 
 ```
 
-#assessing data \| fixing data types \| NA values
+## assessing data \| fixing data types \| NA values
 
 ```{r}
 #visual representation of missing data
@@ -218,7 +218,7 @@ all_years$PREDDEG <- factor(
 
 ```
 
-## Accounting for inflation then graphing
+## Accounting for equal spending power then graphing
 
 ```{r}
 #I forgot to include inflation with these graphs 
@@ -318,7 +318,9 @@ bachelor_schools %>%
   summarize(med_percent_past25k = median(GT_25K_P10, na.rm = TRUE))
 
 bachelor_schools$DEBT_MDN_real
+```
 
+```{r}
 #the bachelor degree summary 
 bachelor_summary<-bachelor_schools %>% #now i can use this for a linear regression model
   group_by(year, CONTROL) %>%
@@ -334,13 +336,37 @@ bachelor_summary<-bachelor_schools %>% #now i can use this for a linear regressi
 
 bachelor_summary
 
-
 ```
 
 ## Regression models
 
 ```{r}
+#looking at median income after 10 years & not great attempts
+model_md10_2<-lm(MD_EARN_WNE_P10_real ~ year + CONTROL, data = bachelor_schools)
+summary(model_md10_2)
 
+model_realmd10<-lm(MD_EARN_WNE_P10_real ~ year * CONTROL, data = bachelor_schools)
+summary(model_realmd10)
+
+model_ans_10<-lm(MD_EARN_WNE_P10_real ~ DEBT_MDN_real + year * CONTROL, data = bachelor_schools)
+summary(model_ans_10)
+
+#Statistically significant but only explains around 12% of the variation so alot of unknown
+
+#looking at median income after 6 years & not great attempts
+model_md6_2<-lm(MD_EARN_WNE_P6_real ~ year + CONTROL, data = bachelor_schools)
+summary(model_md6_2)
+
+model_realmd6<-lm(MD_EARN_WNE_P6_real ~ year * CONTROL, data = bachelor_schools)
+summary(model_realmd6)
+
+model_ans_6<-lm(MD_EARN_WNE_P6_real ~ DEBT_MDN_real + year * CONTROL, data = bachelor_schools)
+summary(model_ans_6)
+
+#Statistically significant but only explains around 14% of the variation so alot of unknown
+```
+
+```{r}
 
 head(bachelor_schools)
 gg_miss_var(bachelor_schools)
@@ -361,7 +387,7 @@ m4_interaction_p6 <- lm(MD_EARN_WNE_P6_real ~ DEBT_MDN_real + year * CONTROL, da
 summary(m4_interaction_p6)
 ```
 
-## Answers/notes : 
+## Answers/notes :
 
 1\. Why I had to make the inflation formula: When looking at the data dictionary, GT_25K_P10 was already adjusted to 2014 constant dollars by the Department of Education, but none of the actual dollar variables (MD_EARN_WNE_P6, MD_EARN_WNE_P10, DEBT_MDN, NPT4) were adjusted for inflation across the three cohort files. Because 2009, 2014, and 2020 dollars don't have the same purchasing power, I used the BLS CPI-U numbers to adjust all the dollar amounts to constant 2020 dollars so we could compare them fairly.
 
