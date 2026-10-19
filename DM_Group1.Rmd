@@ -77,6 +77,10 @@ c("UNITID", "INSTNM", "CONTROL", "NPT4_PUB", "NPT4_PRIV") %in% names(test3)
 
 ```
 
+<<<<<<< HEAD
+=======
+\#"Sydney's" block \#"Naomi's" block \#"Shane's" block \#"Brian's" block
+>>>>>>> da7c282e61f8ec904bab4e7426e832ff04a3bc82
 
 ## Step 3: Creating the new scorecard table and dealing with NA
 
@@ -721,3 +725,140 @@ summary(m4_interaction_p6)
 6.6-Year earnings saw a small real gain: For 6-year median earnings at public colleges, there was a statistically significant increase of about +$1,893$ by 2020–21 (p = 0.0095).
 
 7.Public and private nonprofits held up, but for-profits dropped hard: Public and private nonprofit grads generally kept their purchasing power over the decade, but private for-profit bachelor's programs took a massive loss, dropping by over $11,600$ in real earnings relative to public schools (p \< 0.001).
+
+
+### Brian's block Question 5: "Do completion rates track with cost? Are students paying more but finishing less?"
+
+```{r}
+# my own setup so my block runs no matter what's above it
+library(readr)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(scales)
+options(scipen = 999)
+
+q5_data_dir <- file.path("Datasets",
+                         "College_Scorecard_Raw_Data_06102026",
+                         "College_Scorecard_Raw_Data_06032026")
+
+```
+
+#### Columns important to my question
+
+1. *UNITID*, *INSTNM*: identifiers
+2. *CONTROL*, *PREDDEG*: institution type and predominant degree
+3. *C150_4*: completion rate within 6 years at 4-year schools (main response variable)
+4. *NPT4_PUB*, *NPT4_PRIV*: average net price (combined into one variable)
+5. *COSTT4_A*: average cost of attendance
+6. *PCTPELL*: share of students on Pell grants (control for student income level)
+
+```{r}
+q5_cols <- c("UNITID", "INSTNM", "CONTROL", "PREDDEG", "C150_4",
+             "NPT4_PUB", "NPT4_PRIV", "COSTT4_A", "PCTPELL")
+
+# read as character first so the three years stack without type errors
+q5_read_year <- function(file, label) {
+  read_csv(file.path(q5_data_dir, file),
+           col_select = all_of(q5_cols),
+           na = c("", "NA", "NULL", "PrivacySuppressed"),
+           col_types = cols(.default = col_character())) %>%
+    mutate(year = label)
+}
+
+q5_all <- bind_rows(
+  q5_read_year("MERGED2009_10_PP.csv", "2009-2010"),
+  q5_read_year("MERGED2014_15_PP.csv", "2014-2015"),
+  q5_read_year("MERGED2020_21_PP.csv", "2020-2021")
+) %>%
+  mutate(
+    across(-c(INSTNM, year), as.numeric),
+    # same CPI multipliers (2020 dollars)
+    inflation_adjust = case_when(
+      year == "2009-2010" ~ 1.206,
+      year == "2014-2015" ~ 1.093,
+      year == "2020-2021" ~ 1.000
+    ),
+    NPT4_real = coalesce(NPT4_PUB, NPT4_PRIV) * inflation_adjust,
+    NPT4_k    = NPT4_real / 1000,  # in $1,000s for readable regression output
+    COST_real = COSTT4_A * inflation_adjust,
+    CONTROL = factor(CONTROL, levels = 1:3,
+                     labels = c("Public", "Private Nonprofit", "Private For-Profit"))
+  )
+
+# bachelor's schools with completion + net price in ALL 3 years (same type each year)
+q5_bach <- q5_all %>%
+  filter(PREDDEG == 3, !is.na(C150_4), !is.na(NPT4_real)) %>%
+  group_by(UNITID) %>%
+  filter(n_distinct(year) == 3, n_distinct(CONTROL) == 1) %>%
+  ungroup()
+```
+
+## Comparing net price and completion by year and institution type
+
+```{r}
+q5_summary <- q5_bach %>%
+  group_by(year, CONTROL) %>%
+  summarize(n_schools      = n(),
+            med_net_price  = median(NPT4_real),
+            med_completion = median(C150_4),
+            .groups = "drop")
+q5_summary
+```
+
+```{r}
+# arrow moving right and down = paying more, finishing less
+ggplot(q5_summary, aes(med_net_price, med_completion, color = CONTROL)) +
+  geom_path(aes(group = CONTROL), arrow = arrow(length = unit(0.25, "cm"))) +
+  geom_point(size = 2) +
+  geom_text(aes(label = substr(year, 1, 4)), vjust = -1, size = 3, show.legend = FALSE) +
+  scale_x_continuous(labels = dollar) +
+  scale_y_continuous(labels = percent) +
+  labs(title = "Median net price vs. completion rate, 2009-10 to 2020-21",
+       x = "Median net price (2020 dollars)", y = "Median 6-year completion rate",
+       color = "Institution type")
+```
+
+## Regression model
+
+```{r}
+# completion over time, controlling for net price and Pell share
+q5_model <- lm(C150_4 ~ NPT4_k + PCTPELL + year * CONTROL, data = q5_bach)
+summary(q5_model)
+```
+
+## Same schools in 2009-10 vs. 2020-21
+
+```{r}
+q5_matched <- q5_bach %>%
+  filter(year %in% c("2009-2010", "2020-2021")) %>%
+  select(UNITID, CONTROL, year, NPT4_real, C150_4) %>%
+  pivot_wider(names_from = year, values_from = c(NPT4_real, C150_4)) %>%
+  drop_na() %>%
+  mutate(price_change = `NPT4_real_2020-2021` - `NPT4_real_2009-2010`,
+         comp_change  = `C150_4_2020-2021` - `C150_4_2009-2010`,
+         outcome = case_when(
+           price_change > 0  & comp_change < 0 ~ "Paying more, finishing less",
+           price_change > 0                    ~ "Paying more, finishing more",
+           comp_change < 0                     ~ "Paying less, finishing less",
+           TRUE                                ~ "Paying less, finishing more"))
+
+q5_matched %>%
+  count(CONTROL, outcome) %>%
+  group_by(CONTROL) %>%
+  mutate(pct = round(100 * n / sum(n), 1))
+```
+
+## Answers/notes:
+
+1\. Data choices: C150_4 = % finishing a bachelor's within 6 years. Net price is combined (public/private) and adjusted to 2020 dollars. Note: completion is lagged ~6 years behind price.
+
+2\. Price stayed flat: Real net price barely changed for public (~$14,300) and private nonprofit (~$22,500). For-profits got cheaper ($30,400 → $23,200).
+
+3\. Completion went up: Public 45% → 52%, private nonprofit 55% → 58%. For-profits were lowest 37% → 33%.
+
+4\. Regression: Public completion rose ~10 points by 2020-21 (p < 0.001), even after controlling for price and Pell share. Price barely matters (+0.5 points per $1,000); Pell share matters a lot (more low-income students = lower completion).
+
+5\. Same schools over time: Only ~8% of public schools and ~19% of private nonprofits were paying more but finishing less. Only for-profit schools (28) were in this data so it is hard to trust.
+
+6\. Answer: No, students aren't paying more and finishing less. Price held steady while completion improved. For-profits are the weak spot but this is also the only type of school that went down in price.
