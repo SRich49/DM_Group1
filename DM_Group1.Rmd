@@ -17,16 +17,6 @@ execute:
 # Set up your github connection with your r studio
 
 ```{r}
-#| eval: false
-# Setup commands for local Git & GitHub authentication
-install.packages(c("usethis", "gitcreds"))
-library(usethis)
-use_git_config(user.name = "YourGitHubUsername", user.email = "your.email@example.com")
-usethis::create_github_token()
-gitcreds::gitcreds_set()
-usethis::use_git()
-usethis::use_github()
-
 
 #Libraries
 
@@ -43,8 +33,6 @@ options(scipen = 999)
 ```
 
 
-\#"Sydney's" block
-
 "Naomi's" block
 ## Has college become a worse financial bet over time?
 
@@ -52,9 +40,9 @@ Question 1: How has average net price changed relative to inflation across the y
 
 # Setting working directory and listing the needed files
 ```{r}
-setwd("~/Desktop/FA26/Data Munging/Group Project 1")
+setwd("C:/Users/sydne/Desktop/DS_Fall26/DMungingExpAnalysis/Group Project 1DM_Group1")
 getwd()
-list.files(pattern = "MERGED(2009_10|2014_15|2020_21)_PP\\.csv")
+list.files(pattern = "MERGED(2009_10|2014_15|2020_21)_PP//.csv")
 ```
 ## Step 2: Checking all files and columns needed
 
@@ -848,6 +836,56 @@ q5_matched %>%
   group_by(CONTROL) %>%
   mutate(pct = round(100 * n / sum(n), 1))
 ```
+
+
+\#"Sydney's" block
+
+
+###Data Cleaning, Splitting Net Price
+I am filtering to only 4-year institutions to maintain same degree level
+
+```{r}
+library(tidyverse)
+
+all_years_clean <- all_years %>%
+  mutate(
+    # Coerce metric columns to numeric
+    across(c(MD_EARN_WNE_P10, MD_EARN_WNE_P6, GT_25K_P10, DEBT_MDN, NPT4_PUB, NPT4_PRIV), as.numeric),
+    
+    # Map numeric CONTROL code to descriptive factor levels
+    control_label = factor(
+      CONTROL,
+      levels = c(1, 2, 3),
+      labels = c("Public", "Private Non-Profit", "For-Profit")
+    ),
+    
+    # Merge public and private net price variables into one
+    net_price = coalesce(NPT4_PUB, NPT4_PRIV)
+  ) %>%
+  # Optional: Filter for predominantly 4-year degree granting institutions
+  filter(PREDDEG == 3, !is.na(control_label))
+```
+
+###Looking at Summary Statistics Over Time
+
+```{r}
+summary_trends <- all_years_clean %>%
+  group_by(control_label, year) %>%
+  summarize(
+    n_schools = n(),
+    mean_earnings = mean(MD_EARN_WNE_P10, na.rm = TRUE),
+    median_earnings = median(MD_EARN_WNE_P10, na.rm = TRUE),
+    mean_debt = mean(DEBT_MDN, na.rm = TRUE),
+    mean_net_price = mean(net_price, na.rm = TRUE),
+    pct_gt_25k = mean(GT_25K_P10, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+print(summary_trends)
+```
+
+###Visualizing Interactions
+Utilized gg-plot to look at specific groups
 
 ## Answers/notes:
 
