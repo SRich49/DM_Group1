@@ -17,6 +17,16 @@ execute:
 # Set up your github connection with your r studio
 
 ```{r}
+install.packages(c("usethis", "gitcreds"))
+library(usethis)
+use_git_config(user.name = "YourGitHubUsername", user.email = "your.email@example.com")
+usethis::create_github_token()
+gitcreds::gitcreds_set()
+usethis::use_git()
+usethis::use_github()
+```
+
+```{r}
 
 #Libraries
 
@@ -840,52 +850,172 @@ q5_matched %>%
 
 \#"Sydney's" block
 
-
-###Data Cleaning, Splitting Net Price
-I am filtering to only 4-year institutions to maintain same degree level
-
+##How do price and mean earning vary in Public, Private, and For-Profit Programs?
+###Loading in and cleaning data
 ```{r}
 library(tidyverse)
+library(ggplot2)
+library(scales)
 
-all_years_clean <- all_years %>%
+# 1. Set directory paths using forward slashes
+project.dir <- "C:/Users/sydne/Desktop/DS_Fall26/DMungingExpAnalysis"
+dataset.dir <- file.path(project.dir, "Group Project 1", "DM_Group1")
+
+# 2. Specify files and year labels
+files_info <- tibble(
+  filename = c("MERGED2009_10_PP.csv", "MERGED2014_15_PP.csv", "MERGED2020_21_PP.csv"),
+  year     = c("2009-2010", "2014-2015", "2020-2021")
+)
+
+cols_needed <- c(
+  "UNITID", "INSTNM", "CONTROL", "PREDDEG", 
+  "MD_EARN_WNE_P10", "MD_EARN_WNE_P6", "GT_25K_P10", 
+  "DEBT_MDN", "NPT4_PUB", "NPT4_PRIV"
+)
+
+# 3. Read, clean, and stack datasets into a single dataframe
+
+all_years_clean <- map_dfr(1:nrow(files_info), function(i) {
+  file_path <- file.path(dataset.dir, files_info$filename[i])
+  
+  read_csv(
+    file_path,
+    col_select = all_of(cols_needed),
+    na = c("", "NA", "PrivacySuppressed", "PS", "NULL")
+  ) %>%
+    mutate(year = files_info$year[i])
+}) %>%
   mutate(
-    # Coerce metric columns to numeric
+    # Convert metric columns to numeric
     across(c(MD_EARN_WNE_P10, MD_EARN_WNE_P6, GT_25K_P10, DEBT_MDN, NPT4_PUB, NPT4_PRIV), as.numeric),
     
-    # Map numeric CONTROL code to descriptive factor levels
+    # Recode CONTROL into institution type labels
     control_label = factor(
       CONTROL,
       levels = c(1, 2, 3),
       labels = c("Public", "Private Non-Profit", "For-Profit")
     ),
     
-    # Merge public and private net price variables into one
+    # Unify public and private net price columns
     net_price = coalesce(NPT4_PUB, NPT4_PRIV)
   ) %>%
-  # Optional: Filter for predominantly 4-year degree granting institutions
+  # Filter to predominantly 4-year degree granting institutions
   filter(PREDDEG == 3, !is.na(control_label))
+
+# Check output structure
+glimpse(all_years_clean)
 ```
 
-###Looking at Summary Statistics Over Time
+###Looking at Net Price
 
 ```{r}
-summary_trends <- all_years_clean %>%
+# Aggregate net price statistics by sector and academic year
+price_trends <- all_years_clean %>%
+  filter(!is.na(net_price), !is.na(control_label)) %>%
   group_by(control_label, year) %>%
   summarize(
-    n_schools = n(),
-    mean_earnings = mean(MD_EARN_WNE_P10, na.rm = TRUE),
-    median_earnings = median(MD_EARN_WNE_P10, na.rm = TRUE),
-    mean_debt = mean(DEBT_MDN, na.rm = TRUE),
-    mean_net_price = mean(net_price, na.rm = TRUE),
-    pct_gt_25k = mean(GT_25K_P10, na.rm = TRUE),
+    n_schools        = n(),
+    mean_net_price   = mean(net_price, na.rm = TRUE),
+    median_net_price = median(net_price, na.rm = TRUE),
+    sd_net_price     = sd(net_price, na.rm = TRUE),
     .groups = "drop"
   )
 
-print(summary_trends)
+print(price_trends)
 ```
 
 ###Visualizing Interactions
-Utilized gg-plot to look at specific groups
+
+```{r}
+ggplot(price_trends, aes(x = year, y = median_net_price, color = control_label, group = control_label)) +
+  geom_line(linewidth = 1.2) +
+  geom_point(size = 3) +
+  geom_text(
+    aes(label = dollar(round(median_net_price))),
+    vjust = -0.8,
+    size = 3.5,
+    show.legend = FALSE
+  ) +
+  scale_y_continuous(labels = label_dollar(), limits = c(0, 30000)) +
+  labs(
+    title = "Average Annual Net Price Over Time by Institution Type",
+    subtitle = "Predominantly 4-year institutions (Net price = Tuition + Living Costs - Grants/Scholarships)",
+    x = "Academic Year Cohort",
+    y = "Median Net Price ($)",
+    color = "Institution Type"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+```{r}
+ggplot(all_years_clean, aes(x = year, y = net_price, fill = control_label)) +
+  geom_boxplot(alpha = 0.7, outlier.size = 0.5) +
+  scale_y_continuous(labels = label_dollar()) +
+  labs(
+    title = "Net Price Distribution across Academic Years",
+    x = "Academic Year",
+    y = "Net Price ($)",
+    fill = "Institution Type"
+  ) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+##Mean and Median Earnings
+###Setting up data
+```{r}
+library(tidyverse)
+library(scales)
+
+# 1. Calculate Mean and Median Earnings (10-Year and 6-Year) by Institution Type
+earnings_by_sector <- all_years_clean %>%
+  group_by(control_label, year) %>%
+  summarize(
+    n_institutions   = n(),
+    
+    # 10-Year Earnings Metrics
+    mean_earn_10yr   = mean(MD_EARN_WNE_P10, na.rm = TRUE),
+    median_earn_10yr = median(MD_EARN_WNE_P10, na.rm = TRUE),
+    
+    # 6-Year Earnings Metrics
+    mean_earn_6yr    = mean(MD_EARN_WNE_P6, na.rm = TRUE),
+    median_earn_6yr  = median(MD_EARN_WNE_P6, na.rm = TRUE),
+    
+    .groups = "drop"
+  )
+
+# Display summary table
+print(earnings_by_sector)
+```
+
+###Visualizing Earnings
+```{r}
+# 3. Reshape and plot side-by-side comparison of Mean vs Median earnings
+earnings_long <- earnings_by_sector %>%
+  pivot_longer(
+    cols = c(mean_earn_10yr, median_earn_10yr),
+    names_to = "metric",
+    values_to = "earnings"
+  ) %>%
+  mutate(
+    metric = factor(metric, levels = c("mean_earn_10yr", "median_earn_10yr"), labels = c("Mean Earnings", "Median Earnings"))
+  )
+
+ggplot(earnings_long, aes(x = year, y = earnings, fill = control_label)) +
+  geom_col(position = position_dodge(width = 0.8), width = 0.7) +
+  facet_wrap(~ metric) +
+  scale_y_continuous(labels = label_dollar()) +
+  labs(
+    title = "10-Year Earnings Comparison: Mean vs. Median by Sector",
+    x = "Academic Year",
+    y = "Earnings ($)",
+    fill = "Institution Type"
+  ) +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
 
 ## Answers/notes:
 
