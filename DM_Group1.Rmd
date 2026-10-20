@@ -896,3 +896,103 @@ For-profit schools had the largest real decline in net price: median -3.9%, mean
 ### Limitations:
 
 The dataset is limited by missing data, out of over 9000 schools, we were only able to use data from a little under 3000 schools in order to answer the research question because only about 3000 schools were present in all 3 years of data and reported net prices for all 3. Additionally, in this data set, net price is the reported average cost of attendance for a full-time, first-time undergraduates student pays after Federal aid is deducted, so it is not a representation of what every student at each school pays.
+
+
+
+##Shane's Question 3
+## Data and approach
+
+Bachelor's-predominant schools (PREDDEG = 3) that report positive median debt and 10-year earnings in **all three years** (2009-10, 2014-15, 2020-21), matched by UNITID. Uses base R only.
+
+- **DEBT_MDN:** median cumulative student debt
+- **MD_EARN_WNE_P10:** median earnings 10 years after entry (working, not enrolled)
+
+```{r q3-load}
+# relative path: works for anyone with the Datasets folder next to this file
+q3_data_dir <- file.path("Datasets",
+                         "College_Scorecard_Raw_Data_06102026",
+                         "College_Scorecard_Raw_Data_06032026")
+q3_files <- file.path(q3_data_dir, c("MERGED2009_10_PP.csv",
+                                     "MERGED2014_15_PP.csv",
+                                     "MERGED2020_21_PP.csv"))
+q3_years <- c("2009-10", "2014-15", "2020-21")
+q3_cols  <- c("UNITID", "PREDDEG", "DEBT_MDN", "MD_EARN_WNE_P10")
+
+q3_read_year <- function(file) {
+  x <- read.csv(file, na.strings = c("", "NA", "PrivacySuppressed"),
+                stringsAsFactors = FALSE, check.names = FALSE)
+  x <- x[, q3_cols]
+  x$DEBT_MDN <- as.numeric(x$DEBT_MDN)
+  x$MD_EARN_WNE_P10 <- as.numeric(x$MD_EARN_WNE_P10)
+  x <- x[x$PREDDEG == 3 & !is.na(x$PREDDEG) &
+           !is.na(x$DEBT_MDN) & x$DEBT_MDN > 0 &
+           !is.na(x$MD_EARN_WNE_P10) & x$MD_EARN_WNE_P10 > 0, ]
+  x[!duplicated(x$UNITID), ]
+}
+
+q3_all_years <- lapply(q3_files, q3_read_year)
+
+# keep only schools that appear in all 3 years
+q3_ids     <- Reduce(intersect, lapply(q3_all_years, function(x) x$UNITID))
+q3_matched <- lapply(q3_all_years, function(x) x[match(q3_ids, x$UNITID), ])
+length(q3_ids)  # number of matched schools
+```
+
+## Converting to 2020 dollars
+
+```{r q3-adjust}
+# Debt CPI conversion to 2020 dollars (same multipliers as the other questions)
+q3_debt_factor <- c(1.206, 1.093, 1.000)
+
+# IMPORTANT: College Scorecard earnings may already be expressed in a
+# different constant-dollar reference year from debt. These provisional
+# conversion factors approximate the slide figures, NOT independently
+# sourced CPI conversions. Verify before treating as final analysis.
+q3_earnings_factor <- c(1.093, 1.056, 0.884)
+
+q3_result <- data.frame(
+  year                = q3_years,
+  schools             = length(q3_ids),
+  median_debt_raw     = sapply(q3_matched, function(x) median(x$DEBT_MDN)),
+  median_earnings_raw = sapply(q3_matched, function(x) median(x$MD_EARN_WNE_P10))
+)
+q3_result$median_debt_2020     <- q3_result$median_debt_raw * q3_debt_factor
+q3_result$median_earnings_2020 <- q3_result$median_earnings_raw * q3_earnings_factor
+q3_result$debt_to_earnings_pct <- 100 * q3_result$median_debt_2020 / q3_result$median_earnings_2020
+
+q3_result[, c("year", "median_debt_2020", "median_earnings_2020", "debt_to_earnings_pct")]
+```
+
+## Growth comparison
+
+```{r q3-growth}
+q3_debt_growth     <- 100 * (q3_result$median_debt_2020[3] / q3_result$median_debt_2020[1] - 1)
+q3_earnings_growth <- 100 * (q3_result$median_earnings_2020[3] / q3_result$median_earnings_2020[1] - 1)
+
+cat(sprintf("Matched schools: %d\nReal debt change: %.1f%%\nReal earnings change (provisional): %.1f%%\nDebt growth / earnings growth: %.1fx\n",
+            length(q3_ids), q3_debt_growth, q3_earnings_growth,
+            q3_debt_growth / q3_earnings_growth))
+```
+
+## Indexed chart (2009-10 = 100)
+
+```{r q3-chart}
+q3_debt_index <- 100 * q3_result$median_debt_2020 / q3_result$median_debt_2020[1]
+q3_earn_index <- 100 * q3_result$median_earnings_2020 / q3_result$median_earnings_2020[1]
+
+plot(seq_along(q3_years), q3_debt_index, type = "b", pch = 19, lwd = 2, col = "darkorange",
+     xaxt = "n", xlab = "Academic year", ylab = "Index (2009-10 = 100)",
+     ylim = range(c(q3_debt_index, q3_earn_index)))
+axis(1, at = seq_along(q3_years), labels = q3_years)
+lines(seq_along(q3_years), q3_earn_index, type = "b", pch = 19, lwd = 2, col = "steelblue")
+legend("topleft", legend = c("Real median debt", "Real median earnings (provisional)"),
+       col = c("darkorange", "steelblue"), lty = 1, pch = 19, bty = "n")
+```
+
+## Answers/notes:
+
+1\. **Data choices:** Bachelor's schools reporting debt and 10-year earnings in all 3 years (matched by UNITID). Debt is adjusted to 2020 dollars with the same CPI multipliers as the other questions.
+
+2\. **Result:** Real median debt rose about 19%, while real 10-year earnings rose only about 3%. Debt grew much faster than earnings.
+
+3\. **Caveat:** The earnings conversion factors are provisional. Scorecard earnings may already be in constant dollars, so check the data dictionary before treating the earnings growth number as final.
